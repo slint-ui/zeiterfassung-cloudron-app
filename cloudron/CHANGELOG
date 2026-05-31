@@ -1,0 +1,7 @@
+[0.1.0]
+* Initial Cloudron packaging of Zeiterfassung (Slint fork)
+* PostgreSQL, Sendmail and OIDC addons wired up
+* Cloudron groups claim mapper for role derivation
+* GitHub activity panel integration
+* Customer/project type tracking on time entries
+* Logs persisted under /app/data
