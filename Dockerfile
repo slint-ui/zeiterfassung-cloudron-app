@@ -6,7 +6,7 @@
 FROM eclipse-temurin:25-jdk-noble AS builder
 
 ARG ZE_REPO=https://github.com/slint-ui/zeiterfassung.git
-ARG ZE_REF=main
+ARG ZE_REF=cddbe228
 # Optional: GitHub token for private repos. Pass with --build-arg GH_TOKEN=ghp_xxx
 ARG GH_TOKEN=
 
