@@ -1,0 +1,22 @@
+name: Deploy to Cloudron
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Cloudron CLI
+        run: npm install -g cloudron
+
+      - name: Deploy
+        run: |
+          cloudron \
+            --server my.slint.dev \
+            --token "${{ secrets.CLOUDRON_TOKEN }}" \
+            update \
+            --app zeit.slint.dev
