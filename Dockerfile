@@ -6,7 +6,11 @@
 FROM eclipse-temurin:25-jdk-noble AS builder
 
 ARG ZE_REPO=https://github.com/slint-ui/zeiterfassung.git
-ARG ZE_REF=cddbe228
+ARG ZE_REF=main
+# ZE_SHA is updated automatically by CI to the current HEAD SHA of ZE_REF.
+# Changing it busts Docker's layer cache so the git fetch always re-runs.
+# Pass --build-arg ZE_SHA=$(git rev-parse HEAD) when building manually.
+ARG ZE_SHA=unknown
 # Optional: GitHub token for private repos. Pass with --build-arg GH_TOKEN=ghp_xxx
 ARG GH_TOKEN=
 
@@ -23,6 +27,7 @@ RUN if [ -n "${GH_TOKEN}" ]; then \
     else \
       REPO_WITH_AUTH="${ZE_REPO}"; \
     fi \
+ && echo "Fetching ${ZE_REPO}@${ZE_REF} (sha: ${ZE_SHA})" \
  && git init . \
  && git remote add origin "${REPO_WITH_AUTH}" \
  && git -c protocol.version=2 fetch --depth 1 origin "${ZE_REF}" \
