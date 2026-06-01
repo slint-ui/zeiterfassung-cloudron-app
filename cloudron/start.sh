@@ -82,6 +82,31 @@ export ZEITERFASSUNG_GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 export ZEITERFASSUNG_GITHUB_ORG="${GITHUB_ORG:-}"
 
 # ---------------------------------------------------------------------------
+# GitHub App integration (optional — for the automated activity sync)
+#
+# Set the following in Cloudron → App Settings → Environment Variables:
+#
+#   GITHUB_APP_ID          — numeric App ID from your GitHub App's settings page
+#   GITHUB_APP_PRIVATE_KEY — full contents of the downloaded .pem file,
+#                            base64-encoded (run: base64 -w0 private-key.pem)
+#   GITHUB_ORGANIZATION    — your GitHub organization login (e.g. "slint-ui")
+#
+# The private key is decoded from the env var and written to persistent storage
+# on each startup so no file upload or SSH access is needed.
+#
+# Spring Boot's relaxed binding maps these env vars automatically:
+#   GITHUB_APP_ID            → github.app.id
+#   GITHUB_APP_PRIVATE_KEY_PATH → github.app.private-key-path
+#   GITHUB_ORGANIZATION      → github.organization
+# ---------------------------------------------------------------------------
+if [ -n "${GITHUB_APP_PRIVATE_KEY:-}" ]; then
+  echo "$GITHUB_APP_PRIVATE_KEY" | base64 -d > /app/data/github-app-private-key.pem
+  chmod 600 /app/data/github-app-private-key.pem
+  export GITHUB_APP_PRIVATE_KEY_PATH=/app/data/github-app-private-key.pem
+  echo "==> GitHub App private key written to /app/data/github-app-private-key.pem"
+fi
+
+# ---------------------------------------------------------------------------
 # Server and JVM tuning
 # ---------------------------------------------------------------------------
 export LOGGING_FILE_NAME="/app/data/logs/zeiterfassung.log"
