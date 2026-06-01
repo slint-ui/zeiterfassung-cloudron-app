@@ -3,10 +3,12 @@
 # Override the ref at build time:
 #     cloudron build --build-arg ZE_REF=<sha-or-branch-or-tag>
 # ---------------------------------------------------------------------------
-FROM eclipse-temurin:21-jdk-noble AS builder
+FROM eclipse-temurin:25-jdk-noble AS builder
 
 ARG ZE_REPO=https://github.com/slint-ui/zeiterfassung.git
-ARG ZE_REF=master
+ARG ZE_REF=main
+# Optional: GitHub token for private repos. Pass with --build-arg GH_TOKEN=ghp_xxx
+ARG GH_TOKEN=
 
 ENV MAVEN_OPTS="-Dmaven.repo.local=/root/.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
 
@@ -16,8 +18,13 @@ RUN apt-get update \
 
 WORKDIR /build
 
-RUN git init . \
- && git remote add origin "${ZE_REPO}" \
+RUN if [ -n "${GH_TOKEN}" ]; then \
+      REPO_WITH_AUTH=$(echo "${ZE_REPO}" | sed "s|https://|https://${GH_TOKEN}@|"); \
+    else \
+      REPO_WITH_AUTH="${ZE_REPO}"; \
+    fi \
+ && git init . \
+ && git remote add origin "${REPO_WITH_AUTH}" \
  && git -c protocol.version=2 fetch --depth 1 origin "${ZE_REF}" \
  && git checkout --detach FETCH_HEAD \
  && git rev-parse HEAD > /build/.ze-commit
@@ -26,25 +33,24 @@ RUN ./mvnw -B -ntp -DskipTests clean package \
  && cp target/zeiterfassung-*.jar /tmp/zeiterfassung.jar
 
 # ---------------------------------------------------------------------------
-# Runtime: Cloudron base + Liberica JDK 21
+# Runtime: Cloudron base + Temurin JDK 25
 # ---------------------------------------------------------------------------
 FROM cloudron/base:5.0.0
 
-ENV LIBERICA_VERSION=21.0.3+10 \
-    JAVA_HOME=/opt/jdk-21 \
-    PATH=/opt/jdk-21/bin:$PATH
+ENV JAVA_HOME=/opt/jdk-25 \
+    PATH=/opt/jdk-25/bin:$PATH
 
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
-      amd64) liberica_arch=amd64 ;; \
-      arm64) liberica_arch=aarch64 ;; \
+      amd64) temurin_arch=x64 ;; \
+      arm64) temurin_arch=aarch64 ;; \
       *) echo "unsupported arch: $arch" >&2; exit 1 ;; \
     esac; \
-    url="https://download.bell-sw.com/java/${LIBERICA_VERSION}/bellsoft-jdk${LIBERICA_VERSION}-linux-${liberica_arch}.tar.gz"; \
+    url="https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.3%2B9/OpenJDK25U-jdk_${temurin_arch}_linux_hotspot_25.0.3_9.tar.gz"; \
     curl -fsSL "$url" -o /tmp/jdk.tar.gz; \
-    mkdir -p /opt/jdk-21; \
-    tar -xzf /tmp/jdk.tar.gz -C /opt/jdk-21 --strip-components=1; \
+    mkdir -p /opt/jdk-25; \
+    tar -xzf /tmp/jdk.tar.gz -C /opt/jdk-25 --strip-components=1; \
     rm /tmp/jdk.tar.gz; \
     java -version
 
