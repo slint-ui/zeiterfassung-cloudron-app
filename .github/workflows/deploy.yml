@@ -23,8 +23,7 @@ jobs:
             --server my.slint.dev \
             --token "${{ secrets.CLOUDRON_TOKEN }}" \
             update \
-            --app zeit.slint.dev \
-            --manifest CloudronManifest.json
+            --app zeit.slint.dev
 
       - name: Login to Cloudron
         run: cloudron login --server my.slint.dev --token "${{ secrets.CLOUDRON_TOKEN }}"
