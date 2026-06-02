@@ -23,4 +23,14 @@ jobs:
             --server my.slint.dev \
             --token "${{ secrets.CLOUDRON_TOKEN }}" \
             update \
-            --app zeit.slint.dev
+            --app zeit.slint.dev \
+            --manifest CloudronManifest.json
+
+      - name: Login to Cloudron
+        run: cloudron login --server my.slint.dev --token "${{ secrets.CLOUDRON_TOKEN }}"
+
+      - name: Set GitHub App env vars
+        run: |
+          cloudron env set --app zeit.slint.dev \
+            GITHUB_APP_ID="${{ vars.GH_APP_ID }}" \
+            GITHUB_ORGANIZATION="${{ vars.GH_ORGANIZATION }}"
