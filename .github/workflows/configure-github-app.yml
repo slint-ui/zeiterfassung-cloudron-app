@@ -21,9 +21,10 @@ jobs:
 
       - name: Set GitHub App env vars (single restart)
         run: |
-          cloudron env set \
+          cloudron \
             --server my.slint.dev \
             --token "${{ secrets.CLOUDRON_TOKEN }}" \
+            env set \
             --app zeit.slint.dev \
             GITHUB_APP_ID="${{ vars.GH_APP_ID }}" \
             GITHUB_APP_PRIVATE_KEY="${{ secrets.GH_APP_PRIVATE_KEY }}" \
