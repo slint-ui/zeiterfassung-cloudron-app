@@ -14,10 +14,6 @@ jobs:
       - name: Install Cloudron CLI
         run: npm install -g cloudron
 
-      - name: Write GitHub App private key
-        run: |
-          printf '%s' "${{ secrets.GH_APP_PRIVATE_KEY }}" > cloudron/github-app-private-key.pem
-
       - name: Deploy
         run: |
           cloudron \
@@ -34,4 +30,5 @@ jobs:
             env set \
             --app zeit.slint.dev \
             GITHUB_APP_ID="${{ vars.GH_APP_ID }}" \
-            GITHUB_ORGANIZATION="${{ vars.GH_ORGANIZATION }}"
+            GITHUB_ORGANIZATION="${{ vars.GH_ORGANIZATION }}" \
+            GITHUB_APP_PRIVATE_KEY="/app/data/zeiterfassung-sync.2026-06-02.private-key.pem"
