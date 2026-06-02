@@ -1,0 +1,5 @@
+# Real key files — never commit populated PEM files
+# cloudron/github-app-private-key.pem is intentionally tracked as an empty placeholder
+*.pem
+!cloudron/github-app-private-key.pem
+.DS_Store

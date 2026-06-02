@@ -13,6 +13,10 @@ jobs:
       - name: Install Cloudron CLI
         run: npm install -g cloudron
 
+      - name: Write GitHub App private key
+        run: |
+          printf '%s' "${{ secrets.GH_APP_PRIVATE_KEY }}" > cloudron/github-app-private-key.pem
+
       - name: Deploy
         run: |
           cloudron \

@@ -65,7 +65,10 @@ WORKDIR /app/code
 COPY --from=builder /tmp/zeiterfassung.jar /app/code/zeiterfassung.jar
 COPY --from=builder /build/.ze-commit /app/code/.ze-commit
 COPY cloudron/start.sh /app/code/start.sh
-RUN chmod +x /app/code/start.sh
+# GitHub App private key — written by CI from the GH_APP_PRIVATE_KEY repo secret.
+# Empty file if secret is not set; start.sh checks for non-empty before using it.
+COPY cloudron/github-app-private-key.pem /app/code/github-app-private-key.pem
+RUN chmod +x /app/code/start.sh && chmod 600 /app/code/github-app-private-key.pem
 
 EXPOSE 8080
 
