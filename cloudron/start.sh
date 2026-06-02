@@ -88,7 +88,7 @@ export ZEITERFASSUNG_GITHUB_ORG="${GITHUB_ORG:-}"
 #
 #   GITHUB_APP_ID          — numeric App ID from your GitHub App's settings page
 #   GITHUB_APP_PRIVATE_KEY — full contents of the downloaded .pem file,
-#                            base64-encoded (run: base64 -w0 private-key.pem)
+#                            base64-encoded (run: base64 -i private-key.pem | tr -d '\n')
 #   GITHUB_ORGANIZATION    — your GitHub organization login (e.g. "slint-ui")
 #
 # The private key is decoded from the env var and written to persistent storage
@@ -100,10 +100,15 @@ export ZEITERFASSUNG_GITHUB_ORG="${GITHUB_ORG:-}"
 #   GITHUB_ORGANIZATION      → github.organization
 # ---------------------------------------------------------------------------
 if [ -n "${GITHUB_APP_PRIVATE_KEY:-}" ]; then
-  echo "$GITHUB_APP_PRIVATE_KEY" | base64 -d > /app/data/github-app-private-key.pem
-  chmod 600 /app/data/github-app-private-key.pem
-  export GITHUB_APP_PRIVATE_KEY_PATH=/app/data/github-app-private-key.pem
-  echo "==> GitHub App private key written to /app/data/github-app-private-key.pem"
+  if echo "$GITHUB_APP_PRIVATE_KEY" | tr -d ' \n\r' | base64 -d > /app/data/github-app-private-key.pem 2>/dev/null; then
+    chmod 600 /app/data/github-app-private-key.pem
+    export GITHUB_APP_PRIVATE_KEY_PATH=/app/data/github-app-private-key.pem
+    echo "==> GitHub App private key written to /app/data/github-app-private-key.pem"
+  else
+    rm -f /app/data/github-app-private-key.pem
+    echo "==> WARNING: GITHUB_APP_PRIVATE_KEY is set but base64 decoding failed — GitHub App sync will be disabled"
+    echo "==>          Re-encode the key with: base64 -i private-key.pem | tr -d '\\n'"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
