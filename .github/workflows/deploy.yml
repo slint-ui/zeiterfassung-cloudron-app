@@ -80,11 +80,3 @@ jobs:
             update \
             --app "$CLOUDRON_APP" \
             --image "$IMAGE:${{ github.sha }}"
-
-      - name: Set GitHub App env vars
-        run: |
-          cloudron \
-            --server "$CLOUDRON_SERVER" \
-            --token "${{ secrets.CLOUDRON_TOKEN }}" \
-            env set \
-            --app "$CLOUDRON_APP"
