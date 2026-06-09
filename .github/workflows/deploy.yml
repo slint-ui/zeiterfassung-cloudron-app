@@ -1,34 +1,87 @@
-name: Deploy to Cloudron
+name: Build & Deploy to Cloudron
+
+# CI builds the app image with Docker Buildx on a native amd64 runner, pushes it
+# to the private registry at registry.slint.dev, then points the Cloudron app at
+# the freshly pushed image with `cloudron update --image`.
+#
+# No Cloudron build service is involved — it's a plain `docker build`. The image
+# is built exactly from the Dockerfile (which clones slint-ui/zeiterfassung at the
+# pinned ZE_SHA). `cloudron update` reads CloudronManifest.json from this checkout
+# and the Cloudron box pulls the runtime image from registry.slint.dev.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDRON_TOKEN     — API token for my.slint.dev (already set)
+#   REGISTRY_USERNAME  — login for registry.slint.dev (a Cloudron username)
+#   REGISTRY_PASSWORD  — password for that registry account
+#
+# Required repository variables:
+#   GH_APP_ID, GH_ORGANIZATION
+#
+# One-time box setup so Cloudron can PULL the private image:
+#   my.slint.dev → Settings → Private Docker Registry → registry.slint.dev + creds
 
 on:
   push:
     branches: [master]
   workflow_dispatch:
 
+env:
+  IMAGE: registry.slint.dev/zeiterfassung
+  CLOUDRON_SERVER: my.slint.dev
+  CLOUDRON_APP: zeit.slint.dev
+
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to registry.slint.dev
+        uses: docker/login-action@v3
+        with:
+          registry: registry.slint.dev
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          # Cloudron expects a plain image manifest, not an OCI index with attestations.
+          provenance: false
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Install Cloudron CLI
         run: npm install -g cloudron
 
-      - name: Deploy
+      # --server/--token are GLOBAL flags and must come before the subcommand.
+      # Deploy the immutable per-commit tag (not :latest) so the box records an
+      # exact image and rollbacks are unambiguous.
+      - name: Update app from the pushed image
         run: |
           cloudron \
-            --server my.slint.dev \
+            --server "$CLOUDRON_SERVER" \
             --token "${{ secrets.CLOUDRON_TOKEN }}" \
             update \
-            --app zeit.slint.dev
+            --app "$CLOUDRON_APP" \
+            --image "${{ env.IMAGE }}:${{ github.sha }}"
 
       - name: Set GitHub App env vars
         run: |
           cloudron \
-            --server my.slint.dev \
+            --server "$CLOUDRON_SERVER" \
             --token "${{ secrets.CLOUDRON_TOKEN }}" \
             env set \
-            --app zeit.slint.dev \
+            --app "$CLOUDRON_APP" \
             GITHUB_APP_ID="${{ vars.GH_APP_ID }}" \
             GITHUB_ORGANIZATION="${{ vars.GH_ORGANIZATION }}" \
             GITHUB_APP_PRIVATE_KEY="/app/data/zeiterfassung-sync.2026-06-02.private-key.pem"

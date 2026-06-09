@@ -2,16 +2,53 @@
 
 Cloudron packaging for [Zeiterfassung](https://github.com/urlaubsverwaltung/zeiterfassung) — the Slint fork with customer project tracking and GitHub activity integration.
 
-## Build
+## Build & deploy
 
-```sh
-cloudron build
+CI builds the image with plain Docker (no Cloudron build service), pushes it to
+the private registry `registry.slint.dev`, and repoints the app at it with
+`cloudron update --image`. The box pulls the runtime image from the registry;
+`cloudron update` reads `CloudronManifest.json` from this repo.
+
+```
+①  CI: docker buildx --platform linux/amd64 --push  →  registry.slint.dev/zeiterfassung:<tag>
+②  cloudron update --app zeit.slint.dev --image registry.slint.dev/zeiterfassung:<tag>
 ```
 
-To override the upstream ref being built:
+### Normal path (GitHub Actions)
+
+Push to `master` (or run the **Build & Deploy to Cloudron** workflow) — see
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). The image is built
+on a native amd64 runner from the Dockerfile, which clones the upstream Slint fork
+at the pinned `ZE_SHA`. To build a newer upstream commit, bump `ARG ZE_SHA` in the
+Dockerfile and push.
+
+Required repository **secrets**: `CLOUDRON_TOKEN`, `REGISTRY_USERNAME`,
+`REGISTRY_PASSWORD`. Required **variables**: `GH_APP_ID`, `GH_ORGANIZATION`.
+
+**One-time box setup** so Cloudron can *pull* the private image: `my.slint.dev`
+→ Settings → Private Docker Registry → add `registry.slint.dev` with credentials.
+
+### Manual / local build
+
+Cloudron runs `linux/amd64`, so on Apple Silicon you must cross-build under QEMU
+(slow — prefer CI). `--server`/`--token` are global flags (before the subcommand);
+`cloudron login` caches them.
 
 ```sh
-cloudron build --build-arg ZE_REF=<commit-sha-or-branch-or-tag>
+cloudron login my.slint.dev
+docker login registry.slint.dev
+docker buildx build --platform linux/amd64 \
+  -t registry.slint.dev/zeiterfassung:<tag> --push .
+cloudron update --app zeit.slint.dev --image registry.slint.dev/zeiterfassung:<tag>
+```
+
+### Registry garbage collection
+
+Untagged blobs accumulate in the registry. To reclaim space, open the **registry**
+app's Web Terminal on Cloudron and run:
+
+```sh
+/usr/local/bin/gosu cloudron:cloudron /app/code/registry garbage-collect --delete-untagged /app/data/config.yml
 ```
 
 ## Layout
