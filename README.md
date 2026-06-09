@@ -10,9 +10,13 @@ the private registry `registry.slint.dev`, and repoints the app at it with
 `cloudron update` reads `CloudronManifest.json` from this repo.
 
 ```
-①  CI: docker buildx --platform linux/amd64 --push  →  registry.slint.dev/zeiterfassung:<tag>
+①  CI: docker build  +  docker push  →  registry.slint.dev/zeiterfassung:<tag>
 ②  cloudron update --app zeit.slint.dev --image registry.slint.dev/zeiterfassung:<tag>
 ```
+
+> **Use classic `docker push`, not `buildx --push`.** `registry.slint.dev`
+> (Joxit UI + `registry:2` behind nginx) silently drops BuildKit pushes — they
+> report success but don't persist. A plain `docker build` + `docker push` works.
 
 ### Normal path (GitHub Actions)
 
@@ -30,15 +34,16 @@ Required repository **secrets**: `CLOUDRON_TOKEN`, `REGISTRY_USERNAME`,
 
 ### Manual / local build
 
-Cloudron runs `linux/amd64`, so on Apple Silicon you must cross-build under QEMU
-(slow — prefer CI). `--server`/`--token` are global flags (before the subcommand);
+Cloudron runs `linux/amd64`, so on Apple Silicon build for that platform (slow
+under emulation — prefer CI). Build, then push with classic `docker push` (see the
+note above). `--server`/`--token` are global flags (before the subcommand);
 `cloudron login` caches them.
 
 ```sh
 cloudron login my.slint.dev
 docker login registry.slint.dev
-docker buildx build --platform linux/amd64 \
-  -t registry.slint.dev/zeiterfassung:<tag> --push .
+docker build --platform linux/amd64 -t registry.slint.dev/zeiterfassung:<tag> .
+docker push registry.slint.dev/zeiterfassung:<tag>
 cloudron update --app zeit.slint.dev --image registry.slint.dev/zeiterfassung:<tag>
 ```
 
