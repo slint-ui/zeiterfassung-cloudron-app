@@ -10,7 +10,7 @@ ARG ZE_REF=main
 # ZE_SHA is updated automatically by CI to the current HEAD SHA of ZE_REF.
 # Changing it busts Docker's layer cache so the git fetch always re-runs.
 # Pass --build-arg ZE_SHA=$(git rev-parse HEAD) when building manually.
-ARG ZE_SHA=29655d88d155b38d27db513c7c30a4bdf4c552f0
+ARG ZE_SHA=fb4e34517a506a4fd4068764b37d5877f7fb6583
 # Optional: GitHub token for private repos. Pass with --build-arg GH_TOKEN=ghp_xxx
 ARG GH_TOKEN=
 
